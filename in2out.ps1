@@ -11,10 +11,14 @@ $bin_arr_length=100
 $trial_all = [Math]::Floor($arr_length/$bin_arr_length);
 
 $index_bin_end =@(0)
+if($trial_all -eq 0){
+$index_bin_end += $arr_length 
+}else{
 foreach($i in 1..$trial_all){$index_bin_end += $i*$bin_arr_length}
 if($index_bin_end[-1] -eq $arr_length){
 }else {
 $index_bin_end += $arr_length 
+}
 }
 
 
@@ -48,19 +52,13 @@ $ffmpeg_com_concat > com_ffmpeg_concat.ps1
 ffmpeg -i "out.mp4" -vcodec copy -filter:a dynaudnorm=f=10:g=3 outtemp.mp4
 ffmpeg -i "outtemp.mp4" -vcodec copy -filter:a loudnorm outall.mp4
 
-
 #ffmpeg -i "out.mp4" -vcodec copy -af lowpass=4000,highpass=400 outall.mp4
-
 
 #$ffmpeg_com_concat = 'ffmpeg -i "concat:out1.mp4'
 #foreach($j in 2..$num_trial_repeat){$ffmpeg_com_concat = $ffmpeg_com_concat + "|out$j.mp4"}
 #$ffmpeg_com_concat = $ffmpeg_com_concat + '" -vcodec copy -filter:a dynaudnorm=f=100:g=11 out.mp4'
 
-
-
 #ffmpeg -f concat -safe 0 -i mylist.txt -c copy out.mp4
 #ffmpeg -i out1.mp4 -i out2.mp4 -i out3.mp4 -i out4.mp4 -filter_complex "[0:v] [0:a] [1:v] [1:a] [2:v] [2:a] [3:v] [3:a] concat=n=4:v=1:a=1 [v] [a]" -map "[v]" -map "[a]" out.mp4
 #ffmpeg -i "concat:out1.mp4|out2.mp4|out3.mp4|out4.mp4" -vcodec copy -filter:a dynaudnorm out.mp4
-
-
 
