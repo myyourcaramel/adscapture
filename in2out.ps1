@@ -1,5 +1,5 @@
 #detect silence
-ffmpeg -i "in.mp4" -af silencedetect=noise=-30dB:d=0.4 -f null - 2> spec.txt
+ffmpeg -i "in.mp4" -af silencedetect=noise=-60dB:d=0.4 -f null - 2> spec.txt
 [regex]::Matches((Get-Content .\spec.txt),"silence_start: ([1-9]\d*|0)(\.\d+)?") | foreach{$_.Value}> start.txt
 [regex]::Matches((Get-Content .\spec.txt),"silence_end: ([1-9]\d*|0)(\.\d+)?") | foreach{$_.Value}> end.txt
 $start_time = [regex]::Matches((Get-Content .\start.txt),"([1-9]\d*|0)(\.\d+)?") | foreach{$_.Value}
@@ -25,7 +25,7 @@ foreach($j in 1..$num_trial_repeat){
 $ffmpeg_com = 'ffmpeg -i in.mp4 -filter_complex "'
 $index_process = ($index_bin_end[$j-1]+1)..($index_bin_end[$j])
 
-foreach ($i in $index_process){$ffmpeg_com=$ffmpeg_com+"[0:v]trim="+[string]([single]$end_time[$i-1]-0.2)+":"+[string]([single]$start_time[$i]+0.2)+",setpts=PTS-STARTPTS[v"+[string]($i-1)+"]; [0:a]atrim="+[string]([single]$end_time[$i-1]-0.2)+":"+[string]([single]$start_time[$i]+0.2)+",asetpts=PTS-STARTPTS[a"+[string]($i-1)+"]; "}
+foreach ($i in $index_process){$ffmpeg_com=$ffmpeg_com+"[0:v]trim="+[string]([single]$end_time[$i-1]-0.001)+":"+[string]([single]$start_time[$i]+0.001)+",setpts=PTS-STARTPTS[v"+[string]($i-1)+"]; [0:a]atrim="+[string]([single]$end_time[$i-1]-0.001)+":"+[string]([single]$start_time[$i]+0.001)+",asetpts=PTS-STARTPTS[a"+[string]($i-1)+"]; "}
 foreach ($i in $index_process){$ffmpeg_com=$ffmpeg_com+"[v"+[string]($i-1)+"][a"+[string]($i-1)+"]"}
 $num_streams = $index_process.Length
 $ffmpeg_com = $ffmpeg_com +'concat=n='+[string]($num_streams)+':v=1:a=1[outv][outa]" -map "[outv]" -map "[outa]" out'+[string]$j+'.mp4'
