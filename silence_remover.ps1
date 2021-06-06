@@ -1,9 +1,24 @@
+#filename specified or not
+$val = $Args[0]
+if ( [string]::IsNullOrEmpty( $val ) ) {
+    $Args = "in.mp4"
+} else {
+}
+
+#extract filename
+$Args=Split-Path $Args -leaf
+
+#make a directory, move mp4 into it, set directory
+New-Item -ItemType directory -Path ./"edit_"$Args
+Move-Item -Path ./$Args -Destination ./"edit_"$Args/in.mp4
+Set-Location -Path ./"edit_"$Args
+
 #detect silence
-ffmpeg -i "in.mp4" -af silencedetect=noise=-60dB:d=0.4 -f null - 2> spec.txt
-[regex]::Matches((Get-Content .\spec.txt),"silence_start: ([1-9]\d*|0)(\.\d+)?") | foreach{$_.Value}> start.txt
-[regex]::Matches((Get-Content .\spec.txt),"silence_end: ([1-9]\d*|0)(\.\d+)?") | foreach{$_.Value}> end.txt
-$start_time = [regex]::Matches((Get-Content .\start.txt),"([1-9]\d*|0)(\.\d+)?") | foreach{$_.Value}
-$end_time = [regex]::Matches((Get-Content .\end.txt),"([1-9]\d*|0)(\.\d+)?") | foreach{$_.Value}
+ffmpeg -i "in.mp4" -af silencedetect=noise=-20dB:d=0.4 -f null - 2> spec.txt
+[regex]::Matches((Get-Content .\spec.txt),"silence_start: [-+]?([1-9]\d*|0)(\.\d+)?") | foreach{$_.Value}> start.txt
+[regex]::Matches((Get-Content .\spec.txt),"silence_end: [-+]?([1-9]\d*|0)(\.\d+)?") | foreach{$_.Value}> end.txt
+$start_time = [regex]::Matches((Get-Content .\start.txt),"[-+]?([1-9]\d*|0)(\.\d+)?") | foreach{$_.Value}
+$end_time = [regex]::Matches((Get-Content .\end.txt),"[-+]?([1-9]\d*|0)(\.\d+)?") | foreach{$_.Value}
 
 #process each $bin_arr_length streams
 $arr_length = $start_time.Length -1
@@ -56,9 +71,14 @@ ffmpeg -i "outtemp.mp4" -vcodec copy -filter:a loudnorm outall.mp4
 
 #$ffmpeg_com_concat = 'ffmpeg -i "concat:out1.mp4'
 #foreach($j in 2..$num_trial_repeat){$ffmpeg_com_concat = $ffmpeg_com_concat + "|out$j.mp4"}
-#$ffmpeg_com_concat = $ffmpeg_com_concat + '" -vcodec copy -filter:a dynaudnorm=f=100:g=11 out.mp4'
+#$ffmpeg_com_concat = $ffmpeg_com_concat + '" -vcodec copy -filter:a dynaudnorm=f=10:g=11 out.mp4'
 
 #ffmpeg -f concat -safe 0 -i mylist.txt -c copy out.mp4
 #ffmpeg -i out1.mp4 -i out2.mp4 -i out3.mp4 -i out4.mp4 -filter_complex "[0:v] [0:a] [1:v] [1:a] [2:v] [2:a] [3:v] [3:a] concat=n=4:v=1:a=1 [v] [a]" -map "[v]" -map "[a]" out.mp4
 #ffmpeg -i "concat:out1.mp4|out2.mp4|out3.mp4|out4.mp4" -vcodec copy -filter:a dynaudnorm out.mp4
+
+# move encoded file to upper directory
+Move-Item -Path ./outall.mp4 -Destination ./../"silent_cut_"$Args
+Move-item -Path ./in.mp4 -Destination ./$Args
+Set-Location -Path ./../
 
