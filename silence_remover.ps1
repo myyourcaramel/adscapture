@@ -1,9 +1,47 @@
 #detect silence
-ffmpeg -i "in.mp4" -af silencedetect=noise=-60dB:d=0.4 -f null - 2> spec.txt
-[regex]::Matches((Get-Content .\spec.txt), "silence_start: ([1-9]\d*|0)(\.\d+)?") | foreach { $_.Value }> start.txt
-[regex]::Matches((Get-Content .\spec.txt), "silence_end: ([1-9]\d*|0)(\.\d+)?") | foreach { $_.Value }> end.txt
-$start_time = [regex]::Matches((Get-Content .\start.txt), "([1-9]\d*|0)(\.\d+)?") | foreach { $_.Value }
-$end_time = [regex]::Matches((Get-Content .\end.txt), "([1-9]\d*|0)(\.\d+)?") | foreach { $_.Value }
+$initial_db = -60
+$db_step = 5
+$max_attempts = 4
+
+function Test-Silence {
+    param($db_level)
+    
+    ffmpeg -i "in.mp4" -af silencedetect=noise=${db_level}dB:d=0.4 -f null - 2> spec.txt
+    [regex]::Matches((Get-Content .\spec.txt), "silence_start: ([1-9]\d*|0)(\.\d+)?") | ForEach-Object { $_.Value }> start.txt
+    [regex]::Matches((Get-Content .\spec.txt), "silence_end: ([1-9]\d*|0)(\.\d+)?") | ForEach-Object { $_.Value }> end.txt
+    
+    $start_count = (Get-Content .\start.txt).Count
+    $end_count = (Get-Content .\end.txt).Count
+    
+    return ($start_count -gt 0 -and $end_count -gt 0)
+}
+
+$current_db = $initial_db
+$success = $false
+$final_db = $initial_db
+
+for ($i = 0; $i -lt $max_attempts -and -not $success; $i++) {
+    $success = Test-Silence -db_level $current_db
+    if ($success) {
+        $final_db = $current_db
+        $current_db += $db_step * 2
+        $extra_success = Test-Silence -db_level $current_db
+        if ($extra_success) {
+            $final_db = $current_db
+        }
+        break
+    }
+    $current_db += $db_step
+}
+
+if (-not $success) {
+    exit 1
+}
+
+Test-Silence -db_level $final_db
+
+$start_time = [regex]::Matches((Get-Content .\start.txt), "([1-9]\d*|0)(\.\d+)?") | ForEach-Object { $_.Value }
+$end_time = [regex]::Matches((Get-Content .\end.txt), "([1-9]\d*|0)(\.\d+)?") | ForEach-Object { $_.Value }
 
 #process each $bin_arr_length streams
 $arr_length = $start_time.Length - 1
